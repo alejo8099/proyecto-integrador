@@ -14,7 +14,8 @@ class Habitante extends Model
         'numero_identificacion', 
         'telefono',
         'correo',
-        'fecha_registro'
+        'fecha_registro',
+        'estado_vigencia'
     ];
     public $timestamps = false;
 
@@ -22,7 +23,7 @@ class Habitante extends Model
 
     public function detalle_habitantes()
     {
-        return $this->belongsTo('App\detalle_habitantes');
+        return $this->hasMany('App\detalle_habitantes');
     }
 
 }

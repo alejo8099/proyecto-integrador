@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,3 +18,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 Route::resource('habitante', 'HabitantesController');
+Route::resource('empleado',  'EmpleadoController');
+Route::resource('visitante',  'VisitanteController');
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home');
+

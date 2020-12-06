@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Habitante;
 use Illuminate\Support\Facades\Redirect;
 use PhpParser\Node\Expr\Variable;
+use DB;
 
 class HabitantesController extends Controller
 {
@@ -16,9 +17,35 @@ class HabitantesController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
-        $habitantes=Habitante::orderBy('id','DESC')->paginate(3);
+
+        $habitantes = Habitante::join('detalle_habitantes as dh', 'dh.habitantes_id', '=', 'habitantes.id')
+            ->join('apartamento as ap', 'dh.apartamento_id', '=', 'ap.id')
+            ->SELECT(
+                'habitantes.id',
+                'nombre',
+                'apellidos',
+                'tipo_documento',
+                'numero_identificacion',
+                'telefono_fijo',
+                'telefono_celular',
+                'correo',
+                'fecha_registro',
+                'estado_vigencia',
+                'tipo_habitante',
+                'bloque',
+                'numero_apartamento'
+            )
+            ->orderBy('habitantes.id', 'DESC')->paginate(3);
+
+
         return view('habitante.index', compact('habitantes'));
     }
 
@@ -29,7 +56,11 @@ class HabitantesController extends Controller
      */
     public function create()
     {
-        return view('habitante.create');
+        $ap = apartamento::select('id', 'bloque', 'numero_apartamento')
+            ->orderBy('id','DESC')
+            ->get();
+
+        return view("habitante.create", ["apartamento" => $ap]);
     }
 
     /**
@@ -40,6 +71,8 @@ class HabitantesController extends Controller
      */
     public function store(Request $request)
     {
+        $request->user()->authorizeRoles('admin');
+
         $habitante = new Habitante;
         $habitante->nombre = $request->get('nombre');
         $habitante->apellidos = $request->get('apellidos');
@@ -51,30 +84,22 @@ class HabitantesController extends Controller
         $habitante->fecha_registro = $request->get('fecha_registro');
         $habitante->estado_vigencia = $request->get('estado_vigencia');
         $habitante->save();
-        return Redirect::to('habitante');
 
-        
 
-        $dh=Habitante::select('id')
-        ->where('numero_identificacion', '=', $request->get('documento'))->first();
-        //->where('fecha_registro', '=', $request->get('fecha_registro'))->first();
-        $hb= $dh;
+        //Trae el ultimo registro de habitante
         
+        $dh = Habitante::select('id')
+            ->get()->last();
 
-        $ap= Apartamento::select('id')
-        ->where('numero_apartamento', '=', $request->get('numero_apartamento'))->first();
-        $apartamento= $ap;
-        
-       
+        //insertar datos de la tabla detalle_habitante
         $detalle = new detalle_habitantes;
         $detalle->tipo_habitante = $request->get('tipo_habitante');
-        $detalle->habitantes_id = $hb->id;
-        $detalle->apartamento_id= $apartamento->id;
+        $detalle->habitantes_id = $dh->id;
+        $detalle->apartamento_id = $request->get('apartamento_id');
         $detalle->save();
-        //return Redirect::to('detalle_habitantes');
-        
-       
-        
+
+
+        return Redirect::to('habitante');
     }
 
 
@@ -97,7 +122,17 @@ class HabitantesController extends Controller
      */
     public function edit($id)
     {
-        //
+        $ha = Habitante::findOrFail($id);
+        $dh =detalle_habitantes::orderBy('id','DESC')
+        ->select('id', 'tipo_habitante')
+        ->get();
+        $ap = apartamento::orderBy('id', 'DESC')
+        
+        ->select('id', 'bloque', 'numero_apartamento')
+        ->get();
+        
+        
+        return view("habitante.edit", ["Habitantes" => $ha, "apartamento" => $ap,  "detalle_habitantes"=> $dh]);
     }
 
     /**
@@ -109,7 +144,37 @@ class HabitantesController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+
+        $request->user()->authorizeRoles('admin');
+
+        $habitante =Habitante::findOrFail($id);
+        $habitante->nombre = $request->get('nombre');
+        $habitante->apellidos = $request->get('apellidos');
+        $habitante->tipo_documento = $request->get('tipo_documento');
+        $habitante->numero_identificacion = $request->get('numero_identificacion');
+        $habitante->telefono_fijo = $request->get('telefono_fijo');
+        $habitante->telefono_celular = $request->get('telefono_celular');
+        $habitante->correo = $request->get('correo');
+        $habitante->fecha_registro = $request->get('fecha_registro');
+        $habitante->estado_vigencia = $request->get('estado_vigencia');
+        $habitante->update();
+
+        $dh = Habitante::select('id')
+            ->get()->last();
+
+        //insertar datos de la tabla detalle_habitante
+
+        $id_d = detalle_habitantes::select('id')
+            ->where('habitantes_id', '=', $id)->first();
+        $id_detalle = $id_d;
+
+      
+        $detalle = detalle_habitantes::findOrFail($id_detalle->id);
+        $detalle->tipo_habitante = $request->get('tipo_habitante');
+        $detalle->apartamento_id = $request->get('apartamento_id');
+        $detalle->update();
+
+        return Redirect::to('habitante');
     }
 
     /**
@@ -118,8 +183,19 @@ class HabitantesController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy( $request,  $id)
     {
-        //
+        $request->user()->authorizeRoles('admin');
+        
+         $dh=detalle_habitantes::where('habitantes_id', '=', $id);
+         $dh->delete();
+
+        $habitantes =Habitante::findOrFail($id);
+        $habitantes->delete();
+
+
+        return Redirect::to('habitante');
+
+
     }
 }

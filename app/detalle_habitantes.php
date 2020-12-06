@@ -14,11 +14,11 @@ class detalle_habitantes extends Model
 
     public function habitantes()
     {
-        return $this->belongsTo('App\habitante');
+        return $this->hasMany('App\habitante');
     }
     
     public function apartamento()
     {
-        return $this->belongsTo('App\apartamento');
+        return $this->hasMany('App\apartamento');
     }
 }

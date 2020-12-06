@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class apartamento extends Model
 {
+    protected $table = "apartamento";
     protected $fillable = [
         'bloque',
-        'numero_apartamento',
-        'estado_apartamento',
+        'numero_apartamento'
+        
     ];
     public $timestamps = false;
 
